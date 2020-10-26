@@ -66,13 +66,13 @@ test <- test[,8:length(test)]
 
 ```
 
-In order to evaluate our model before submitting it for grading, we'll designate a partition of it for validation
+Create a validation set
 
 ```{r}
 set.seed(15)
-intrain <- createDataPartition(y=train$classe,p=0.5, list=FALSE) 
-valid.data <- train[intrain,]
-train.data <- train[-intrain,]
+invalid <- createDataPartition(y=train$classe,p=0.5, list=FALSE) 
+valid.data <- train[invalid,]
+train.data <- train[-invalid,]
 ```
 
 I built a random forest model to predict `classe` on all of the other variables. 
@@ -86,18 +86,19 @@ if (!file.exists("RFmod.RData"))
   load("RFmod.RData")
 }
   
-
 #save(modelRf, file="RFmod.RData")
 ```
+
 ### Performance of the model on the validation data set
 
 ```{r}
 pred_rf <- predict(modelRf, valid.data)
 confusionMatrix(valid.data$classe, pred_rf)
 ```
-The accuracy of the model is quite high.
+The accuracy of the model is quite high. No need to try an other model.
 
-Prediction without evaluation
+
+Prediction without printing out the result
 
 ```{r eval =F}
 pred.test <- predict(modelRf,test)

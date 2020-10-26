@@ -407,11 +407,11 @@ test&lt;-test[,remaining_cols]</code></pre>
 <p>The first 7 variables are also left out.</p>
 <pre class="r"><code>train &lt;- train[,8:length(train)]
 test &lt;- test[,8:length(test)]</code></pre>
-<p>In order to evaluate our model before submitting it for grading, we’ll designate a partition of it for validation</p>
+<p>Create a validation set</p>
 <pre class="r"><code>set.seed(15)
-intrain &lt;- createDataPartition(y=train$classe,p=0.5, list=FALSE) 
-valid.data &lt;- train[intrain,]
-train.data &lt;- train[-intrain,]</code></pre>
+invalid &lt;- createDataPartition(y=train$classe,p=0.5, list=FALSE) 
+valid.data &lt;- train[invalid,]
+train.data &lt;- train[-invalid,]</code></pre>
 <p>I built a random forest model to predict <code>classe</code> on all of the other variables.</p>
 <pre class="r"><code>set.seed(12)
 if (!file.exists(&quot;RFmod.RData&quot;))
@@ -421,7 +421,6 @@ if (!file.exists(&quot;RFmod.RData&quot;))
   load(&quot;RFmod.RData&quot;)
 }
   
-
 #save(modelRf, file=&quot;RFmod.RData&quot;)</code></pre>
 <div id="performance-of-the-model-on-the-validation-data-set" class="section level3">
 <h3>Performance of the model on the validation data set</h3>
@@ -459,8 +458,8 @@ confusionMatrix(valid.data$classe, pred_rf)</code></pre>
 ## Detection Rate         0.2832   0.1897   0.1699   0.1603   0.1830
 ## Detection Prevalence   0.2843   0.1935   0.1744   0.1639   0.1839
 ## Balanced Accuracy      0.9928   0.9863   0.9839   0.9950   0.9989</code></pre>
-<p>The accuracy of the model is quite high.</p>
-<p>Prediction without evaluation</p>
+<p>The accuracy of the model is quite high. No need to try an other model.</p>
+<p>Prediction without printing out the result</p>
 <pre class="r"><code>pred.test &lt;- predict(modelRf,test)</code></pre>
 </div>
 </div>
