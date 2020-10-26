@@ -128,7 +128,7 @@ confusionMatrix(valid.data$classe, pred_rf)
 ## Detection Prevalence   0.2843   0.1935   0.1744   0.1639   0.1839
 ## Balanced Accuracy      0.9928   0.9863   0.9839   0.9950   0.9989
 ```
-The accuracy of the model is quite high. No need to try an other model.
+The accuracy of the model is quite high. No need to try an other model. The expected out-of-sample error is 1-accuracy in the cross-validation data: 1-0.9861 = 0.0139.
 
 
 Prediction without printing out the result

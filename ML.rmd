@@ -4,7 +4,7 @@ author: "Harnos Andrea"
 date: "10/24/2020"
 output: 
   html_document:
-    keep md: yes
+    keep_md: yes
 ---
 
 ```{r setup, include=FALSE}
@@ -97,7 +97,7 @@ if (!file.exists("RFmod.RData"))
 pred_rf <- predict(modelRf, valid.data)
 confusionMatrix(valid.data$classe, pred_rf)
 ```
-The accuracy of the model is quite high. No need to try an other model.
+The accuracy of the model is quite high. No need to try an other model. The expected out-of-sample error is 1-accuracy in the cross-validation data: 1-0.9861 = 0.0139.
 
 
 Prediction without printing out the result
