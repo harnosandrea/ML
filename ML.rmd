@@ -1,0 +1,79 @@
+---
+title: "Practical machine learning course project"
+author: "Harnos Andrea"
+date: "10/24/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+==================================
+## Getting data
+
+```{r download}
+#Download the data
+if (!(file.exists("pml-training.csv")) & !(file.exists("pml-testing.csv")))
+{download.file("http://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", method="curl", destfile = "pml-testing.csv")
+download.file(trainingURL,"http://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", destfile = "pml-training.csv")
+}
+
+library(caret)
+```
+
+We'll ignore the test data until we've selected a model. After reading in the training data, there's a little tidying to do:
+
+* Replace empty cells and cells with errors with `NA`s
+* Remove rows that only have data for the summary variables
+
+```{r}
+train <- read.csv("pml-training.csv")
+train[train==""] <- NA
+train.data[train.data=="#DIV/0!"] <- NA
+na.rows <- apply(train.data, 1, function(x){sum(is.na(x))})
+na.rm.index <- which(is.na(train.data[1,]))
+train.data <- train.data[, -na.rm.index]
+```
+In order to evaluate our model before submitting it for grading, we'll designate a partition of it for validation
+```{r}
+set.seed(12345)
+inTrain <- createDataPartition(y=train.data$classe,p=0.7, list=FALSE) 
+train.data.train <- train.data[inTrain,]
+train.data.test <- train.data[-inTrain,]
+```
+Now that the data are prepared, fitting the model is fairly straightforward. Ignoring user, window and time data, I built a random forest model training `classe` on all of the motion sensor variables, with mostly default arguments. I anticipated that this crude model would need to be adjusted, but it actually performs very well.
+```{r, cache=TRUE}
+set.seed(12345)
+modFit <- train(classe ~ ., data=train.data.train[,8:60], method="rf", prox=TRUE) 
+```
+I was initially worried the model was overfitting the training set; however, it performs very well on the validation data, and was 100% accurate on the test data.
+```{r}
+save(modFit, file = "mod2.rda")
+pred.train <- predict(modFit, train.data.train)
+train.data.train$predRight <- pred.train==train.data.train$classe
+table(pred.train, train.data.train$classe)
+pred.test <- predict(modFit,train.data.test)
+train.data.test$predRight <- pred.test==train.data.test$classe
+table(pred.test,train.data.test$classe)
+```
+At a glance you can tell that the in-sample accuracy 100%. It perhaps overfits the data, but it is also has 99% out-of-sample accuracy.
+```{r}
+sum(train.data.test$predRight)/nrow(train.data.test)
+```
+And finally, apply the model to the testing set and export the `.txt` files
+```{r}
+setwd("data")
+test.data <- read.csv("pml-testing.csv")
+test.data[test.data==""] <- NA
+test.data[test.data=="#DIV/0!"] <- NA
+test.data <- test.data[, -na.rm.index]
+answers = predict(modFit, test.data)
+pml_write_files = function(x){
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0("problem_id_",i,".txt")
+    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
+}
+pml_write_files(answers)
+```
