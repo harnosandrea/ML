@@ -8,72 +8,99 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-==================================
-## Getting data
 
-```{r download}
+## Introduction
+
+The goal of this project to develop a classification model for ditinguisning correct and incorrect workout technique based on data measured by three-axis gyro sensors on the belt, forearm, arm, and dumbell.
+
+The measurements were made on six male participants who had to perform one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in five different fashions:
+
+- Class A: exactly according to the specification
+- Class B: throwing the elbows to the front
+- Class C: lifting the dumbbell only halfway 
+- Class D: lowering the dumbbell only halfway
+- Class F: throwing the hips to the front
+
+Class A means the correctly executed  exercise, while the other 4 classes are incorrect. 
+
+
+## Getting data and loading the caret package
+
+```{r download, include=F}
 #Download the data
 if (!(file.exists("pml-training.csv")) & !(file.exists("pml-testing.csv")))
 {download.file("http://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", method="curl", destfile = "pml-testing.csv")
-download.file(trainingURL,"http://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", destfile = "pml-training.csv")
+download.file("http://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", destfile = "pml-training.csv")
 }
-
+library(dplyr)
 library(caret)
 ```
 
-We'll ignore the test data until we've selected a model. After reading in the training data, there's a little tidying to do:
+Explore the data.
 
-* Replace empty cells and cells with errors with `NA`s
-* Remove rows that only have data for the summary variables
+```{r explor, eval=F}
+glimpse(train)
+```
 
 ```{r}
-train <- read.csv("pml-training.csv")
-train[train==""] <- NA
-train.data[train.data=="#DIV/0!"] <- NA
-na.rows <- apply(train.data, 1, function(x){sum(is.na(x))})
-na.rm.index <- which(is.na(train.data[1,]))
-train.data <- train.data[, -na.rm.index]
+train <- read.csv("pml-training.csv", na.strings = c("",NA), stringsAsFactors = T)
+test <- read.csv("pml-testing.csv", na.strings = c("",NA), stringsAsFactors = T)
 ```
+
+The first seven variables are not measurements (name of the participant and timestamp etc.), and should be excluded from the dataset. Also variables with too many missing values sholud be excluded. Columns with more than 20% missing values will be left out from the analysis.
+
+Delete variables with more than 20% missing values
+
+```{r }
+limit_of_NAs <- nrow(train) * 0.2
+remaining_cols <- which(colSums(!is.na(train)) > limit_of_NAs)
+train<-train[,remaining_cols]
+test<-test[,remaining_cols]
+```
+
+The first 7 variables are also left out.
+
+```{r select_variables}
+train <- train[,8:length(train)]
+test <- test[,8:length(test)]
+
+```
+
 In order to evaluate our model before submitting it for grading, we'll designate a partition of it for validation
+
 ```{r}
-set.seed(12345)
-inTrain <- createDataPartition(y=train.data$classe,p=0.7, list=FALSE) 
-train.data.train <- train.data[inTrain,]
-train.data.test <- train.data[-inTrain,]
+set.seed(15)
+intrain <- createDataPartition(y=train$classe,p=0.5, list=FALSE) 
+valid.data <- train[intrain,]
+train.data <- train[-intrain,]
 ```
-Now that the data are prepared, fitting the model is fairly straightforward. Ignoring user, window and time data, I built a random forest model training `classe` on all of the motion sensor variables, with mostly default arguments. I anticipated that this crude model would need to be adjusted, but it actually performs very well.
+
+I built a random forest model to predict `classe` on all of the other variables. 
+
 ```{r, cache=TRUE}
-set.seed(12345)
-modFit <- train(classe ~ ., data=train.data.train[,8:60], method="rf", prox=TRUE) 
-```
-I was initially worried the model was overfitting the training set; however, it performs very well on the validation data, and was 100% accurate on the test data.
-```{r}
-save(modFit, file = "mod2.rda")
-pred.train <- predict(modFit, train.data.train)
-train.data.train$predRight <- pred.train==train.data.train$classe
-table(pred.train, train.data.train$classe)
-pred.test <- predict(modFit,train.data.test)
-train.data.test$predRight <- pred.test==train.data.test$classe
-table(pred.test,train.data.test$classe)
-```
-At a glance you can tell that the in-sample accuracy 100%. It perhaps overfits the data, but it is also has 99% out-of-sample accuracy.
-```{r}
-sum(train.data.test$predRight)/nrow(train.data.test)
-```
-And finally, apply the model to the testing set and export the `.txt` files
-```{r}
-setwd("data")
-test.data <- read.csv("pml-testing.csv")
-test.data[test.data==""] <- NA
-test.data[test.data=="#DIV/0!"] <- NA
-test.data <- test.data[, -na.rm.index]
-answers = predict(modFit, test.data)
-pml_write_files = function(x){
-  n = length(x)
-  for(i in 1:n){
-    filename = paste0("problem_id_",i,".txt")
-    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
-  }
+set.seed(12)
+if (!file.exists("RFmod.RData"))
+{modelRf <- train(classe ~ ., data=train.data, method="rf", ntree=250)
+}else
+{
+  load("RFmod.RData")
 }
-pml_write_files(answers)
+  
+
+#save(modelRf, file="RFmod.RData")
 ```
+### Performance of the model on the validation data set
+
+```{r}
+pred_rf <- predict(modelRf, valid.data)
+confusionMatrix(valid.data$classe, pred_rf)
+```
+The accuracy of the model is quite high.
+
+Prediction without evaluation
+
+```{r eval =F}
+pred.test <- predict(modelRf,test)
+
+```
+
