@@ -412,7 +412,7 @@ test &lt;- test[,8:length(test)]</code></pre>
 invalid &lt;- createDataPartition(y=train$classe,p=0.5, list=FALSE) 
 valid.data &lt;- train[invalid,]
 train.data &lt;- train[-invalid,]</code></pre>
-<p>I built a random forest model to predict <code>classe</code> on all of the other variables.</p>
+<p>As referenced paper I built a random forest model to predict <code>classe</code> on all of the other variables.</p>
 <pre class="r"><code>set.seed(12)
 if (!file.exists(&quot;RFmod.RData&quot;))
 {modelRf &lt;- train(classe ~ ., data=train.data, method=&quot;rf&quot;, ntree=250)
